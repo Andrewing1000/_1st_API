@@ -9,7 +9,8 @@ from django.contrib.auth.models import (
     PermissionsMixin
 )
 
-from core.permissions import DBPermissionsMixin
+from core.permissions import Role, RolePermissionsMixin
+
 
 class UserManager(BaseUserManager):
     """Manager for users."""
@@ -23,6 +24,36 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
 
         return user
+    
+    def create_lab_admin(self, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError('User must have an email address')
+        user = self.model(email=self.normalize_email(email), **extra_fields)
+
+        
+        role = LabAdmin()
+        role.save()
+
+        user.role = role
+
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+    
+    def create_lab_assistant(self, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError('User must have an email address')
+        user = self.model(email=self.normalize_email(email), **extra_fields)
+
+        role = LabAssistant()
+        role.save()
+
+        user.role = role
+
+
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
 
     def create_superuser(self, email, password):
         """Create and return a new superuser."""
@@ -32,17 +63,6 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
 
         return user
-
-
-class Role(AbstractBaseUser, PermissionsMixin):
-    """User roles in the system"""
-
-    is_active = models.BooleanField(default=True)
-    is_staff = models.BooleanField(default=False)
-    role_name = models.CharField(max_length=255, unique=True, primary_key=True)
-
-    USERNAME_FIELD = 'role_name'
-
 
 class LabAdmin(Role):
     """Lab Administrator role"""
@@ -58,7 +78,8 @@ class LabAdmin(Role):
 
     def save(self, *args, **kwargs):
         self.role_name = 'AdministradorLaboratorio'
-        super.save(*args, **kwargs)
+        super().save(*args, **kwargs)
+
 
 class LabAssistant(Role):
     """Lab Assistant role"""
@@ -69,17 +90,16 @@ class LabAssistant(Role):
 
     def save(self, *args, **kwargs):
         self.role_name = 'AsistenteLaboratorio'
-        super.save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
-class User(AbstractBaseUser, DBPermissionsMixin):
+
+class User(AbstractBaseUser, RolePermissionsMixin):
     """User in the system."""
 
     class Meta:
         permissions = [("own_password_modification", "Modification of self's account password"),
                        ("own_phone_modification", "Modification of self's account phone number"),]
 
-
-    role = models.ForeignKey(Role, on_delete=models.CASCADE, null = True)
     email = models.EmailField(max_length=255, unique=True)
     name = models.CharField(max_length=255)
     is_active = models.BooleanField(default=True)

@@ -7,6 +7,8 @@ from rest_framework.settings import api_settings
 
 from core.models import User
 
+from core.permissions import getDBPermission
+
 from user.serializers import (
     UserSerializer,
     AuthTokenSerializer,
@@ -16,6 +18,7 @@ from user.serializers import (
 class CreateUserView(generics.CreateAPIView):
     """Create a new user in the system."""
     serializer_class = UserSerializer
+    permission_classes = [getDBPermission(db_permission = 'app.assistant_creation')]
 
 class CreateTokenView(ObtainAuthToken):
     """Create a new auth toker for user."""

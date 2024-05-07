@@ -18,12 +18,29 @@ def create_user(**params):
     """Create and return a new user."""
     return get_user_model().objects.create_user(**params)
 
+def create_lab_admin(**params):
+    """Create and return a new user."""
+    return get_user_model().objects.create_lab_admin(**params)
 
-class PublicUserAPITests(TestCase):
+def create_lab_assistant(**params):
+    """Create and return a new user."""
+    return get_user_model().objects.create_lab_assistant(**params)
+
+
+
+class PublicAdminAPITests(TestCase):
     """Test the public features of the user API."""
 
     def setUp(self):
+        self.user = create_lab_admin(
+            email = 'admin@example.com',
+            password = 'testpass123',
+            name ='Test Name',
+        )
+
         self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+
 
     def test_create_user_success(self):
         """Test creating user is succesful"""
@@ -32,6 +49,7 @@ class PublicUserAPITests(TestCase):
             'password' : 'test123',
             'name' : 'TestName',
         }
+        
         res = self.client.post(CREATE_USER_URL, payload)
 
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
@@ -49,8 +67,7 @@ class PublicUserAPITests(TestCase):
             'password' : 'test123',
             'name' : 'Test Name',
         }
-
-        create_user(**payload)
+        
         res = self.client.post(CREATE_USER_URL, payload)
 
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
@@ -78,7 +95,7 @@ class PublicUserAPITests(TestCase):
             'email' : 'test@example.com',
             'password' : 'test_user_password123',
         }
-        create_user(**user_details)
+        create_lab_admin(**user_details)
 
         payload = {
             'email' : user_details['email'],
@@ -91,7 +108,7 @@ class PublicUserAPITests(TestCase):
 
     def test_create_token_bad_credentials(self):
         """Test returns error if credentials invalid."""
-        create_user(email='test@example.com', password = 'goodpass')
+        create_lab_admin(email='test@example.com', password = 'goodpass')
 
         payload = {
             'email' : 'test@example.com',
@@ -135,7 +152,7 @@ class PublicUserAPITests(TestCase):
 class PrivateUserAPITests(TestCase):
     """Test API requests that requiere authentication."""
     def setUp(self):
-        self.user = create_user(
+        self.user = create_lab_admin(
             email = 'test@example.com',
             password = 'testpass123',
             name ='Test Name',
