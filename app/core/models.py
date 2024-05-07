@@ -9,6 +9,7 @@ from django.contrib.auth.models import (
     PermissionsMixin
 )
 
+from core.permissions import DBPermissionsMixin
 
 class UserManager(BaseUserManager):
     """Manager for users."""
@@ -33,8 +34,52 @@ class UserManager(BaseUserManager):
         return user
 
 
-class User(AbstractBaseUser, PermissionsMixin):
+class Role(AbstractBaseUser, PermissionsMixin):
+    """User roles in the system"""
+
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
+    role_name = models.CharField(max_length=255, unique=True, primary_key=True)
+
+    USERNAME_FIELD = 'role_name'
+
+
+class LabAdmin(Role):
+    """Lab Administrator role"""
+
+    class Meta:
+        permissions = [ ("lab_admin_creation", "Creation of lab admin users"),
+                        ("lab_admin_modification", "Modification of lab admin users"),
+                        ("assistant_inactivation", "Deletion of assistant users"),
+                        ("assistant_modification", "Modification of assistant users"),
+                        ("assistant_creation", "Creation of assistan users"),
+                        ]
+        proxy = True
+
+    def save(self, *args, **kwargs):
+        self.role_name = 'AdministradorLaboratorio'
+        super.save(*args, **kwargs)
+
+class LabAssistant(Role):
+    """Lab Assistant role"""
+
+    class Meta:
+        permissions = []
+        proxy = True
+
+    def save(self, *args, **kwargs):
+        self.role_name = 'AsistenteLaboratorio'
+        super.save(*args, **kwargs)
+
+class User(AbstractBaseUser, DBPermissionsMixin):
     """User in the system."""
+
+    class Meta:
+        permissions = [("own_password_modification", "Modification of self's account password"),
+                       ("own_phone_modification", "Modification of self's account phone number"),]
+
+
+    role = models.ForeignKey(Role, on_delete=models.CASCADE, null = True)
     email = models.EmailField(max_length=255, unique=True)
     name = models.CharField(max_length=255)
     is_active = models.BooleanField(default=True)
@@ -43,6 +88,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects = UserManager()
 
     USERNAME_FIELD = 'email'
+
 
 
 
